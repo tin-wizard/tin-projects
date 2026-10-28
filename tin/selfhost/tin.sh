@@ -87,12 +87,9 @@ case "${1:-}" in
     compose up -d --wait postgres
     # Drop the one-off recovery target so a later crash recovery is not stopped at it.
     pg psql -U selfhost -d huly -qc "ALTER SYSTEM RESET recovery_target_time" -c "SELECT pg_reload_conf()" >/dev/null
-    compose up -d; compose restart nginx
+    compose up -d
     echo "Restored $dir${target:+ to $target}. Search index rebuilds in the background (fulltext service)."
     ;;
-
-  # nginx caches upstream container IPs at start; recreated services get new IPs, so restart it after `up`.
-  up) compose "$@"; compose restart nginx ;;
 
   *) compose "$@" ;;
 esac

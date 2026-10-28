@@ -1,5 +1,5 @@
 # TIN Projects: build our white-labelled images and push them to GHCR.
-# Release: push a tag `tin/<version>` (e.g. tin/dev-f292d16-tin.1); the image tag is <version>.
+# Release: push a tag `tin/<version>` (e.g. tin/pc-9360df1-tin.1); the image tag is <version>.
 # Not v*/s* tags: those also trigger upstream's main.yml. Manual runs only work once this file is on the default branch.
 name: TIN images
 
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Image tag, e.g. dev-f292d16-tin.1'
+        description: 'Image tag, e.g. pc-9360df1-tin.1'
         required: true
 
 permissions:
@@ -26,6 +26,8 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
+      - name: Licence check
+        run: tin/check-licenses.sh
       - name: Free space
         uses: ./.github/actions/free-disk-space
       - uses: actions/setup-node@v6

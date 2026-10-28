@@ -1,7 +1,7 @@
 # TIN Projects white-label changes
 
-TIN Projects is Huly (hcengineering/platform, EPL-2.0) with TIN branding. Branch `tin/main` =
-upstream `develop` + the changes below. Keep this list complete: it is what you re-apply or
+TIN Projects is Huly (Platform-Collective/platform, the maintained successor of hcengineering/platform; EPL-2.0)
+with TIN branding. Branch `tin/main` = upstream `develop` + the changes below. Keep this list complete: it is what you re-apply or
 resolve when rebasing onto a newer upstream.
 
 Product: **TIN Projects** · Tagline: **Plan. Collaborate. Deliver.** · Domain: `projects.tin.info`
@@ -34,6 +34,10 @@ Only English strings are changed; `branding.json` limits the UI to English.
 ## 3. Deliberately unchanged
 
 - **License and copyright notices** in source files (EPL-2.0 requires keeping them) and the upstream `LICENSE`.
+- **PolyForm Shield files** (Copyright TraceX SAS; listed in `tin/polyform-files.txt`): Platform Collective ported these
+  from TraceX. PolyForm Shield allows any use except providing a product that competes with the licensor's products,
+  so TIN Projects is for internal use only unless legal review says otherwise. CI (`tin/check-licenses.sh`) fails when
+  upstream adds more; review them before running `tin/check-licenses.sh --update`.
 - "Huly Unified Format" (export format name), Google API privacy statements (legal text, only shown if Google integrations are configured), Huly Mail and billing strings (features not deployed).
 - Help menu links still point at Huly: Privacy Policy → `v1.huly.io/legal/privacy`, Report a Bug → upstream GitHub
   issues, Contact us → Huly Slack, Documentation → docs.huly.io. **TIN URLs needed.** No code change: add per host in

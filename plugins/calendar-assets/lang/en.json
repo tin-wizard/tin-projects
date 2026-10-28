@@ -100,7 +100,7 @@
     "MeetingDuration": "Meeting duration",
     "MeetingInterval": "Pause between meetings",
     "CalDavAccess": "CalDAV access",
-    "CalDavAccessPrompt": "CalDAV protocol allows for syncing your personal TIN Projects calendar with external calendar applications. Use this account and the suggested password for registering the Huly CalDAV server in a calendar client application.", 
+    "CalDavAccessPrompt": "CalDAV protocol allows for syncing your personal TIN Projects calendar with external calendar applications. Use this account and the suggested password for registering the TIN Projects CalDAV server in a calendar client application.", 
     "CalDavAccessEnable": "Enable CalDAV access to the personal calendar in workspace {ws}",
     "CalDavAccessServer": "CalDAV server",
     "CalDavAccessAccount": "TIN Projects account",

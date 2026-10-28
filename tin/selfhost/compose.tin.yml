@@ -1,6 +1,6 @@
 # TIN Projects overrides on top of the vendored huly-selfhost compose (upstream/compose.yml).
 # Usage (from tin/selfhost):  ./tin.sh <staging|production> <docker compose args...>
-# Keep upstream/compose.yml unmodified so it can be re-synced from hcengineering/huly-selfhost.
+# Keep upstream/compose.yml unmodified so it can be re-synced from Platform-Collective/platform-selfhost.
 
 x-node-health: &node-health
   interval: 15s
@@ -53,7 +53,6 @@ services:
     # Bind to loopback by default; Caddy (profile "https") or an SSH tunnel is the only way in.
     ports: !override
       - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8087}:80"
-    # nginx resolves upstream IPs only at start; tin.sh restarts it after every `up` (else 502 after recreates).
     depends_on:
       front:
         condition: service_healthy
@@ -75,15 +74,15 @@ services:
     networks:
       - huly_net
 
-  redpanda:
-    healthcheck:
-      # Upstream's check passes SASL creds, but SASL is not enabled, so it always reports unhealthy.
-      test: ['CMD', 'rpk', 'cluster', 'health', '--exit-when-healthy']
-
   kvs:
     # Only the Gmail / mail-worker integrations use kvs (KVS_URL); neither is deployed. It also logs the
     # full DB URL incl. password and has no TLS (cannot reach managed Postgres). Opt in with COMPOSE_PROFILES=kvs.
     profiles: [kvs]
+    ports: !reset []
+
+  print:
+    # PDF printing service; we do not build a TIN image for it yet. Opt in with COMPOSE_PROFILES=print.
+    profiles: [print]
     ports: !reset []
 
   rekoni:
@@ -93,8 +92,6 @@ services:
     image: ${TIN_REGISTRY:-ghcr.io/tin-wizard}/tin-projects-transactor:${TIN_VERSION}
     depends_on: *needs-db
     environment:
-      # Upstream hard-codes http://localhost:8087, which breaks links in notification emails.
-      - FRONT_URL=http${SECURE:+s}://${HOST_ADDRESS}
       - BRANDING_PATH=/var/cfg/branding.json
       - MAIL_URL=${MAIL_URL:-}
     volumes:

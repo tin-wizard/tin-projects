@@ -1,10 +1,10 @@
 # TIN Projects: self-hosting runbook
 
-TIN Projects runs the official [huly-selfhost](https://github.com/hcengineering/huly-selfhost) Docker Compose
+TIN Projects runs the [platform-selfhost](https://github.com/Platform-Collective/platform-selfhost) Docker Compose
 stack with our own images. Nothing here replaces upstream components; we only override them.
 
 ```
-upstream/compose.yml   vendored unchanged from huly-selfhost (commit in upstream/SOURCE_COMMIT)
+upstream/compose.yml   vendored unchanged from platform-selfhost (commit in upstream/SOURCE_COMMIT)
 .huly.nginx            vendored unchanged (in-stack nginx routing)
 compose.tin.yml        TIN overrides: our images, branding, health checks, Caddy (HTTPS), mail, fixes
 branding.json          host-keyed branding (title, icons, English-only UI)
@@ -22,22 +22,20 @@ Branding details and the placeholder assets to replace: [../BRANDING.md](../BRAN
 - **PostgreSQL 18 replaces CockroachDB** (see "Database" below). CockroachDB is behind profile `cockroach` (unused).
 - `kvs` is disabled (profile `kvs`): only the Gmail/mail-worker integrations use it, it logs the full DB URL
   including the password, and it has no TLS so it cannot reach managed Postgres. Its port 8094 is unpublished.
-- nginx is restarted by `tin.sh` after every `up` (it caches container IPs; recreated services otherwise give 502).
 - nginx binds to `127.0.0.1` only; public traffic goes through Caddy (HTTPS).
-- Transactor `FRONT_URL` was hard-coded to `http://localhost:8087` (broke links in emails).
-- Redpanda health check passed SASL credentials to a broker without SASL, so it was always unhealthy.
+- `print` is disabled (profile `print`): we do not build a TIN print image yet.
 - Known, accepted: MinIO keeps upstream's default credentials; it is reachable only on the internal Docker network.
 
 ## Images
 
-All app images are built from `tin/main` (upstream `develop` + TIN branding) and named
+All app images are built from `tin/main` (Platform Collective `develop` + TIN branding) and named
 `ghcr.io/tin-wizard/tin-projects-<service>:<TIN_VERSION>`. Only `kvs` (a separate upstream Rust repo,
-no branding) and the third-party images (PostgreSQL, Redpanda, MinIO, Elasticsearch, nginx, Caddy) are upstream.
+no branding) and the third-party images (PostgreSQL, Redpanda, Silo (MinIO-compatible), Elasticsearch, nginx, Caddy) are upstream.
 
-- **CI (for servers):** `git tag tin/dev-f292d16-tin.2 && git push origin tin/dev-f292d16-tin.2` runs "TIN images",
-  which builds `linux/amd64` and pushes `…:dev-f292d16-tin.2` to GHCR. Use `tin/*` tags only: upstream's `main.yml`
+- **CI (for servers):** `git tag tin/pc-9360df1-tin.2 && git push origin tin/pc-9360df1-tin.2` runs "TIN images",
+  which builds `linux/amd64` and pushes `…:pc-9360df1-tin.2` to GHCR. Use `tin/*` tags only: upstream's `main.yml`
   triggers on `v*`/`s*` tags. (The manual "Run workflow" button needs this file on the default branch, `develop`.)
-- **Local:** `TIN_VERSION=dev-f292d16-tin.2 tin/selfhost/build-images.sh` (Node 22; ~30–60 min cold, host architecture).
+- **Local:** `TIN_VERSION=pc-9360df1-tin.2 tin/selfhost/build-images.sh` (Node 22; ~30–60 min cold, host architecture).
 
 Set the same `TIN_VERSION` in `env/staging.env` / `env/production.env`.
 
@@ -74,7 +72,7 @@ Staging uses the same files with `staging` instead of `production`. Locally it r
 
 ## Database: PostgreSQL 18 on the same server (decision 2026-10-28)
 
-Why not upstream's CockroachDB: huly-selfhost pins v24.2, which reached end of support on 2025-02-12, and every
+Why not upstream's CockroachDB: platform-selfhost pins v24.2, which reached end of support on 2025-02-12, and every
 CockroachDB release since 24.3 (incl. later 24.2 patches) is under a proprietary licence: production needs an annually
 renewed key (free only under $10M revenue) with mandatory telemetry, else throttling.
 Why PostgreSQL: upstream CI runs its full UI test suite on `postgres:18` (`tests/docker-compose.purepg.yaml`), it is
@@ -104,9 +102,9 @@ private network; nothing else changes (`CR_DB_URL`).
 Troubleshooting:
 - Elasticsearch stuck "unhealthy" at high CPU after a fresh start (seen once on a new volume):
   `./tin.sh <env> restart elastic` (healthy within ~2 min).
-- 502 Bad Gateway after updating images: `./tin.sh <env> restart nginx` (tin.sh `up` does this automatically).
+- 502 Bad Gateway right after updating images: services are still starting; nginx re-resolves them within 10 s.
 - "Preparing workspace for new version…" forever: the images report an older model version than the data
-  (e.g. data created by a `v0.7.4xx` release opened with `develop` images). Do not mix release and develop data.
+  (e.g. data created by an original-Huly `v0.7.426`+ release). Do not load data from hcengineering releases.
 
 ## Backup
 
@@ -148,7 +146,7 @@ server + the steps above.
 
 ## Upgrading
 
-1. Read huly-selfhost `MIGRATION.md` for the target version; re-sync `upstream/` files if they changed.
+1. Read platform-selfhost `MIGRATION.md` for the target version; re-sync `upstream/` files if they changed.
 2. Rebase `tin/main` onto the new upstream ref; resolve conflicts in the files listed in `../BRANDING.md`.
 3. Build new images with a new `TIN_VERSION`, deploy to staging, test, then production.
 4. Always `./tin.sh production backup` before `up -d` with new images (schema migrations run on start).
