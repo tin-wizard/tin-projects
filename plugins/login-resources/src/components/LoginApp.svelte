@@ -46,6 +46,7 @@
 
   import AdminWorkspaces from './AdminWorkspaces.svelte'
   import ChangePassword from './ChangePassword.svelte'
+  import OrbitBackdrop from './OrbitBackdrop.svelte'
 
   export let page: Pages = 'signup'
 
@@ -119,7 +120,8 @@
 {:else}
   <div class="login w-full h-full">
     <div class="login-column">
-      <!-- TODO(rebranding): the logo is intentionally not shown on the login page for now -->
+      <!-- Backdrop fills .login (absolute); its brand mark flows here, above the card. -->
+      <OrbitBackdrop />
       <div class="login-card">
         <Scroller padding={'1rem 0'}>
           <div class="form-content">
@@ -196,12 +198,14 @@
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    border-radius: 1rem;
-    background-color: var(--theme-comp-header-color);
-    border: 1px solid var(--theme-button-border);
+    border-radius: 1.25rem;
+    background-color: color-mix(in srgb, var(--theme-comp-header-color) 86%, transparent);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--theme-divider-color);
     box-shadow:
-      var(--theme-popup-shadow),
-      0 12px 32px rgba(0, 0, 0, 0.12);
+      0 2px 4px rgba(17, 17, 20, 0.04),
+      0 24px 60px rgba(17, 17, 20, 0.12);
+    animation: card-enter 0.8s 0.15s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 
     // Bounded so long content (e.g. a workspace list) scrolls internally
     // instead of the whole page growing without limit.
@@ -231,6 +235,33 @@
     font-size: 0.8125rem;
   }
 
+  // Orbit look for the fields inside the card: soft fill, blue focus ring.
+  .login-card :global(.editbox) {
+    background-color: var(--theme-bg-color);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .login-card :global(.editbox:focus-within) {
+    background-color: var(--theme-comp-header-color);
+    border-color: var(--primary-button-default);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-button-default) 14%, transparent);
+  }
+  @keyframes card-enter {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .login-card {
+      animation: none;
+    }
+  }
   @media (max-width: 480px) {
     .login {
       padding: 1rem 0.75rem;

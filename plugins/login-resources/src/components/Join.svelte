@@ -281,7 +281,7 @@
         <Button
           dataId="join-with-this-account"
           label={login.string.Join}
-          kind={'contrast'}
+          kind={'primary'}
           shape={'round2'}
           size={'large'}
           loading={joiningWithAccount}

@@ -85,7 +85,7 @@
           handleProviderClick(provider)
         }}
       >
-        <Button kind={'contrast'} shape={'round2'} size={'x-large'} width="100%" stopPropagation={false}>
+        <Button kind={'regular'} shape={'round2'} size={'x-large'} width="100%" stopPropagation={false}>
           <svelte:fragment slot="content">
             <svelte:component this={provider.component} displayName={provider.displayName} />
           </svelte:fragment>
