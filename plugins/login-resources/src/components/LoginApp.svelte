@@ -46,7 +46,7 @@
 
   import AdminWorkspaces from './AdminWorkspaces.svelte'
   import ChangePassword from './ChangePassword.svelte'
-  import OrbitBackdrop from './OrbitBackdrop.svelte'
+  import BrandPanel from './BrandPanel.svelte'
 
   export let page: Pages = 'signup'
 
@@ -119,9 +119,11 @@
   <AdminWorkspaces />
 {:else}
   <div class="login w-full h-full">
+    <BrandPanel />
+    <div class="login-pane">
     <div class="login-column">
-      <!-- Backdrop fills .login (absolute); its brand mark flows here, above the card. -->
-      <OrbitBackdrop />
+      <!-- Shown only when the brand panel is hidden (narrow screens). -->
+      <img class="compact-logo" src="/tin/tin-logo.png" alt="TIN Projects" width="60" height="40" />
       <div class="login-card">
         <Scroller padding={'1rem 0'}>
           <div class="form-content">
@@ -166,6 +168,10 @@
           </div>
         {/if}
       </div>
+      <a class="by-tin" href="https://tin.info" target="_blank" rel="noopener">
+        A product by <img src="/tin/tin-logo.png" alt="TIN" width="30" height="20" />
+      </a>
+    </div>
     </div>
 
     <Popup />
@@ -173,14 +179,44 @@
 {/if}
 
 <style lang="scss">
+  // Brand panel on the left, sign-in on the right (BrandPanel hides itself below 900px).
   .login {
     position: relative;
     display: flex;
+    background-color: var(--theme-comp-header-color);
+    box-sizing: border-box;
+  }
+
+  .login-pane {
+    flex: 1 1 28rem;
+    min-width: 0;
+    display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--theme-bg-color);
     padding: 2rem 1rem;
     box-sizing: border-box;
+  }
+
+  .compact-logo {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .compact-logo {
+      display: block;
+    }
+  }
+
+  .by-tin {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--theme-dark-color);
+
+    &:hover {
+      text-decoration: none;
+      color: var(--theme-caption-color);
+    }
   }
 
   .login-column {
@@ -199,12 +235,7 @@
     min-width: 0;
     box-sizing: border-box;
     border-radius: 1.25rem;
-    background-color: color-mix(in srgb, var(--theme-comp-header-color) 86%, transparent);
-    backdrop-filter: blur(18px);
-    border: 1px solid var(--theme-divider-color);
-    box-shadow:
-      0 2px 4px rgba(17, 17, 20, 0.04),
-      0 24px 60px rgba(17, 17, 20, 0.12);
+    background-color: var(--theme-comp-header-color);
     animation: card-enter 0.8s 0.15s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 
     // Bounded so long content (e.g. a workspace list) scrolls internally
@@ -235,7 +266,7 @@
     font-size: 0.8125rem;
   }
 
-  // Orbit look for the fields inside the card: soft fill, blue focus ring.
+  // Soft fields with a blue focus ring inside the card: soft fill, blue focus ring.
   .login-card :global(.editbox) {
     background-color: var(--theme-bg-color);
     transition:
@@ -263,7 +294,7 @@
     }
   }
   @media (max-width: 480px) {
-    .login {
+    .login-pane {
       padding: 1rem 0.75rem;
     }
   }
