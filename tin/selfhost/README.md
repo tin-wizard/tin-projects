@@ -57,7 +57,7 @@ Usage grows with data and active users.
 git clone https://github.com/tin-wizard/tin-projects.git && cd tin-projects && git checkout tin/main
 cd tin/selfhost
 ./tin.sh production init-secrets          # once; back up env/secrets.production.env somewhere safe
-$EDITOR env/production.env                 # ACME_EMAIL, MAIL_SOURCE, SMTP_HOST; SMTP creds in the secrets file
+$EDITOR env/production.env                 # MAIL_SOURCE, SMTP_HOST; SMTP creds in the secrets file
 echo "$GHCR_TOKEN" | docker login ghcr.io -u <github-user> --password-stdin   # if the packages are private
 ./tin.sh production pull
 ./tin.sh production up -d --wait

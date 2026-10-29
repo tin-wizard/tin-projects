@@ -190,7 +190,7 @@
       <Button
         dataId={actionButtonDataId}
         label={action.i18n}
-        kind={'contrast'}
+        kind={'primary'}
         shape={'round2'}
         size={'x-large'}
         width="100%"
