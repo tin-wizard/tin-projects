@@ -49,6 +49,15 @@ services:
   cockroach:
     profiles: [cockroach]
 
+  # The two largest services; <env>.env can shrink them for a 4 GB server (ES_HEAP=512m, REDPANDA_MEM=1g).
+  elastic:
+    environment:
+      - ES_JAVA_OPTS=-Xms${ES_HEAP:-1024m} -Xmx${ES_HEAP:-1024m}
+
+  redpanda:
+    # Redpanda sizes its memory pool from the container limit.
+    mem_limit: ${REDPANDA_MEM:-2g}
+
   nginx:
     # Bind to loopback by default; Caddy (profile "https") or an SSH tunnel is the only way in.
     ports: !override
@@ -65,7 +74,6 @@ services:
       - "443:443"
     environment:
       - HOST_ADDRESS=${HOST_ADDRESS}
-      - ACME_EMAIL=${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -130,6 +138,9 @@ services:
     environment:
       - BRANDING_URL=http${SECURE:+s}://${HOST_ADDRESS}/tin-branding.json
       - DISABLE_SIGNUP=${DISABLE_SIGNUP:-false}
+      # The build takes VERSION from the nearest git tag and cannot parse tin/* tags, so the front would exit.
+      # A build-time value, when present, takes precedence over this.
+      - VERSION=${TIN_VERSION}
     volumes:
       # Host-keyed branding (title, favicons, languages); served from the front's static dir.
       - ./branding.json:/app/dist/tin-branding.json:ro
