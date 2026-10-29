@@ -1,3 +1,4 @@
+@use "sass:meta";
 //
 // Copyright © 2021 Anticrm Platform Contributors.
 // 
@@ -179,3 +180,6 @@ body {
     overflow: visible !important;
   }
 }
+
+// TIN Projects overrides; last so they win over the tokens above.
+@include meta.load-css("./tin.scss");

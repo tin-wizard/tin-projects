@@ -1,0 +1,137 @@
+// SPDX-License-Identifier: EPL-2.0
+//
+// TIN Projects "Clarity" look. Loaded last from global.scss so it overrides upstream tokens without
+// editing upstream files: only fonts, colours and radii change, never layout, components or routes.
+// Geist fonts: SIL Open Font License, see ../fonts/geist/OFL.txt.
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/geist/Geist-Variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/geist/GeistMono-Variable.woff2') format('woff2');
+}
+
+* {
+  --font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono-font: 'Geist Mono', ui-monospace, monospace;
+
+  // Slightly softer corners throughout.
+  --extra-small-BorderRadius: 0.375rem;
+  --extra-small-focus-BorderRadius: 0.5rem;
+  --small-BorderRadius: 0.5rem;
+  --small-focus-BorderRadius: 0.625rem;
+  --medium-BorderRadius: 0.625rem;
+  --medium-focus-BorderRadius: 0.75rem;
+
+  // Accent: #3B5BDB (white text on it is 5.9:1).
+  --primary-button-default: #3B5BDB;
+  --primary-button-hovered: #3451C7;
+  --primary-button-pressed: #2F49B8;
+  --primary-button-focused: #3B5BDB;
+  --primary-button-outline: #7B93F0;
+  --primary-button-transparent: rgba(59, 91, 219, 0.18);
+  --secondary-button-default: #E7ECFD;
+  --secondary-button-hovered: #DCE3FC;
+  --secondary-button-pressed: #CBD5FA;
+  --secondary-button-focused: #DCE3FC;
+  --highlight-blue-01: #3B5BDB;
+  --text-editor-selected-node-background: rgba(59, 91, 219, 0.1);
+}
+
+.theme-light {
+  // Surfaces: white work area on a light grey frame.
+  --theme-bg-color: #F7F7F8;
+  --theme-back-color: #E4E4E8;
+  --theme-statusbar-color: #FFFFFF;
+  --theme-navpanel-color: #F7F7F8;
+  --theme-navpanel-hovered: rgba(17, 17, 20, 0.045);
+  --theme-navpanel-selected: rgba(59, 91, 219, 0.09);
+  --theme-navpanel-divider: rgba(17, 17, 20, 0.08);
+  --theme-navpanel-border: rgba(17, 17, 20, 0.07);
+  --theme-navpanel-icons-color: #5B5B66;
+  --theme-navpanel-icons-divider: rgba(17, 17, 20, 0.08);
+  --theme-comp-header-color: #FFFFFF;
+  --theme-panel-color: #FFFFFF;
+  --theme-divider-color: rgba(17, 17, 20, 0.07);
+  --theme-bg-divider-color: #E7E7EA;
+  --theme-dialog-background-color: #FFFFFF;
+  --theme-dialog-border-color: rgba(17, 17, 20, 0.08);
+
+  // Text: near-black ink, greys that keep 4.5:1 on white.
+  --theme-caption-color: #111114;
+  --theme-content-color: rgba(17, 17, 20, 0.82);
+  --theme-text-primary-color: rgba(17, 17, 20, 0.82);
+  --theme-dark-color: rgba(17, 17, 20, 0.62);
+  --theme-halfcontent-color: rgba(17, 17, 20, 0.55);
+  --theme-darker-color: rgba(17, 17, 20, 0.42);
+  --theme-trans-color: rgba(17, 17, 20, 0.32);
+  --theme-text-placeholder-color: rgba(17, 17, 20, 0.45);
+  --caption-color: #111114;
+  --content-color: #3A3A44;
+  --accent-color: #26262E;
+  --theme-accent-color: rgba(17, 17, 20, 0.82);
+  --theme-icon-stroke: #26262E;
+
+  // Accent uses.
+  --theme-link-color: #3451C7;
+  --theme-editbox-focus-border: #3B5BDB;
+  --primary-edit-border-color: #3B5BDB;
+  --theme-tablist-plain-color: #3B5BDB;
+  --theme-popup-checkicon: #3B5BDB;
+  --theme-toggle-on-bg-color: #3B5BDB;
+  --theme-toggle-on-bg-hover: #3451C7;
+  --theme-caret-color: #3B5BDB;
+  --theme-mention-bg-color: rgba(59, 91, 219, 0.1);
+  --theme-mention-focused-bg-color: rgba(59, 91, 219, 0.2);
+  --theme-state-primary-color: #3B5BDB;
+  --theme-state-primary-background-color: rgba(59, 91, 219, 0.1);
+  --theme-state-primary-border-color: rgba(59, 91, 219, 0.16);
+  --theme-inbox-people-notify: #3B5BDB;
+  --theme-inbox-people-counter-bgcolor: rgba(59, 91, 219, 0.1);
+  --theme-calendar-today-bgcolor: rgba(59, 91, 219, 0.1);
+  --theme-calendar-event-available-color: rgba(59, 91, 219, 0.2);
+  --calendar-event-border-color: rgba(59, 91, 219, 0.2);
+  --calendar-event-handle-color: #3B5BDB;
+  --highlight-select: #EEF1FD;
+  --highlight-select-border: #E2E7FC;
+  --highlight-select-hover: #E5EAFC;
+  --menu-bg-select: #EEF1FD;
+  --popup-bg-hover: #F2F2F4;
+
+  // Buttons, lists, tables, cards.
+  --theme-button-border: rgba(17, 17, 20, 0.1);
+  --theme-button-container-color: #F2F2F4;
+  --theme-list-button-color: #F2F2F4;
+  --theme-list-button-hover: #EBEBEE;
+  --theme-list-border-color: rgba(17, 17, 20, 0.08);
+  --theme-list-subheader-color: #F7F7F8;
+  --theme-list-row-color: #FFFFFF;
+  --theme-list-divider-color: rgba(17, 17, 20, 0.06);
+  --theme-list-subheader-divider: rgba(17, 17, 20, 0.06);
+  --theme-table-border-color: rgba(17, 17, 20, 0.08);
+  --theme-table-header-color: #F7F7F8;
+  --theme-table-row-color: #FFFFFF;
+  --theme-kanban-card-bg-color: #FFFFFF;
+  --theme-kanban-card-border: rgba(17, 17, 20, 0.08);
+  --theme-kanban-card-footer: rgba(17, 17, 20, 0.04);
+  --highlight-hover: #F2F2F4;
+
+  // Popups and tooltips.
+  --theme-popup-color: #FFFFFF;
+  --theme-popup-hover: #F2F2F4;
+  --theme-popup-header: #F2F2F4;
+  --theme-popup-divider: rgba(17, 17, 20, 0.08);
+  --theme-popup-shadow: 0 0 0 1px rgba(17, 17, 20, 0.06), 0 8px 24px rgba(17, 17, 20, 0.12);
+  --theme-tooltip-bg: #1F1F24;
+
+  --scrollbar-bar-color: #DADADF;
+  --scrollbar-track-color: #EDEDF0;
+}
