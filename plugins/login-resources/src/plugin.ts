@@ -27,7 +27,6 @@ export default mergeIds(loginId, login, {
     IncorrectValue: '' as StatusCode<{ field: string }>
   },
   string: {
-    CreateWorkspace: '' as IntlString,
     HaveWorkspace: '' as IntlString,
     LastName: '' as IntlString,
     FirstName: '' as IntlString,

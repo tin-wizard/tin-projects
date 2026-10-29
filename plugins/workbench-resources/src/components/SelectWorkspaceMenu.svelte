@@ -14,8 +14,15 @@
 -->
 <script lang="ts">
   import contact from '@hcengineering/contact'
-  import { isArchivingMode, systemAccountUuid, WorkspaceInfoWithStatus } from '@hcengineering/core'
-  import login from '@hcengineering/login'
+  import {
+    AccountRole,
+    getCurrentAccount,
+    hasAccountRole,
+    isArchivingMode,
+    systemAccountUuid,
+    WorkspaceInfoWithStatus
+  } from '@hcengineering/core'
+  import login, { loginId } from '@hcengineering/login'
   import { getMetadata, getResource } from '@hcengineering/platform'
   import presentation, { createQuery, decodeTokenPayload, hasResource, isAdminUser } from '@hcengineering/presentation'
   import {
@@ -24,6 +31,7 @@
     fetchMetadataLocalStorage,
     getCurrentLocation,
     Icon,
+    IconAdd,
     IconCheck,
     isSameSegments,
     Label,
@@ -121,6 +129,13 @@
   }
 
   $: isAdmin = isAdminUser()
+  // Same rule as "Select workspace" in AccountPopup: guests cannot create workspaces.
+  const canCreateWorkspace = hasAccountRole(getCurrentAccount(), AccountRole.User)
+
+  function createWorkspace(): void {
+    closePopup()
+    navigate({ path: [loginId, 'createWorkspace'] })
+  }
 
   let search: string = ''
 
@@ -192,6 +207,13 @@
       <div class="p-2 ml-2 mb-4 select-text flex-col bordered">
         {decodeTokenPayload(getMetadata(presentation.metadata.Token) ?? '').workspace ?? ''}
       </div>
+    {/if}
+    {#if canCreateWorkspace}
+      <button class="ap-menuItem flex-row-center" on:click={createWorkspace}>
+        <Icon icon={IconAdd} size={'small'} />
+        <span class="label ml-2"><Label label={login.string.CreateWorkspace} /></span>
+      </button>
+      <div class="ap-menuItem separator halfMargin" />
     {/if}
     <div class="ap-scroll">
       <div class="ap-box">
