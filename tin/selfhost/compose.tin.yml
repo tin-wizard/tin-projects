@@ -138,8 +138,8 @@ services:
     environment:
       - BRANDING_URL=http${SECURE:+s}://${HOST_ADDRESS}/tin-branding.json
       - DISABLE_SIGNUP=${DISABLE_SIGNUP:-false}
-      # The build takes VERSION from the nearest git tag and cannot parse tin/* tags, so the front would exit.
-      # A build-time value, when present, takes precedence over this.
+      # Only for images built before show_tag.js fell back to version.txt (pc-9360df1-tin.1): those have no
+      # build-time VERSION and the front exits without one. Newer images bake VERSION in, which wins over this.
       - VERSION=${TIN_VERSION}
     volumes:
       # Host-keyed branding (title, favicons, languages); served from the front's static dir.

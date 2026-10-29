@@ -14,12 +14,11 @@
 //
 
 const exec = require('child_process').exec
+const fs = require('fs')
+const path = require('path')
 
 exec('git describe --tags --abbrev=0', (err, stdout, stderr) => {
-  if (err !== null) {
-    console.log('"0.6.0"')
-  }
-  const rawVersion = stdout.trim().replace('v', '').replace('s', '').split('.')
+  const rawVersion = err === null ? stdout.trim().replace('v', '').replace('s', '').split('.') : []
   if (rawVersion.length === 3) {
     const version = {
       major: parseInt(rawVersion[0]),
@@ -27,5 +26,13 @@ exec('git describe --tags --abbrev=0', (err, stdout, stderr) => {
       patch: parseInt(rawVersion[2])
     }
     console.log(`"${version.major}.${version.minor}.${version.patch}"`)
+    return
+  }
+  // No tag, or one that is not vX.Y.Z (e.g. tin/* release tags): use version.txt like show_version.js,
+  // so every image of one build reports the same version and front/server version checks agree.
+  try {
+    console.log(fs.readFileSync(path.resolve(__dirname, 'version.txt'), 'utf8').trim())
+  } catch (error) {
+    console.log('"0.6.0"')
   }
 })
