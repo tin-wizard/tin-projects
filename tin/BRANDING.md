@@ -27,6 +27,7 @@ Add a host to `branding.json` for every address the app is served from, or that 
 | `plugins/login-resources/.../icons/LoginIcon.svelte` | Login logo → **placeholder** mark |
 | `plugins/onboard-resources/.../icons/OnboardIcon.svelte` | Onboarding logo → **placeholder** mark |
 | `plugins/{login,onboard,notification,setting,workbench,calendar}-assets/lang/en.json` | User-facing "Huly" → "TIN Projects" (9 strings) |
+| `plugins/contact-resources/.../CreateEmployee.svelte`, `plugin.ts`, `plugins/contact-assets/lang/en.json` | "Invite by email" dialog: role picker, visible send failure, sent confirmation. Sends before adding the contact |
 | `server/account/lang/en.json` | Invite, password-setup and all HTML email headers/footers → TIN Projects |
 
 Only English strings are changed; `branding.json` limits the UI to English.
