@@ -48,7 +48,7 @@ import {
   type SessionManager,
   type StorageAdapter
 } from '@hcengineering/server-core'
-import { decodeToken, type Token } from '@hcengineering/server-token'
+import { decodeToken, isLimitedToken, type Token } from '@hcengineering/server-token'
 import 'bufferutil'
 import cors from 'cors'
 import express, { type Response as ExpressResponse, type NextFunction, type Request } from 'express'
@@ -326,6 +326,10 @@ export function startHttpServer (
         }
 
         const token = authHeader.split(' ')[1]
+        if (isLimitedToken(decodeToken(token))) {
+          res.status(403).end(JSON.stringify({ error: 'Not available to limited API tokens' }))
+          return
+        }
         const wsIds = await getWorkspaceIds(token)
 
         if (wsIds.uuid == null) {
@@ -395,6 +399,10 @@ export function startHttpServer (
         }
 
         const token = authHeader.split(' ')[1]
+        if (isLimitedToken(decodeToken(token))) {
+          res.status(403).end(JSON.stringify({ error: 'Not available to limited API tokens' }))
+          return
+        }
         const wsIds = await getWorkspaceIds(token)
 
         if (wsIds.uuid == null) {
@@ -435,7 +443,11 @@ export function startHttpServer (
   app.put('/api/v1/broadcast', (req, res) => {
     try {
       const token = (req.query.token as string) ?? (req.headers.authorization ?? '').split(' ')[1]
-      decodeToken(token)
+      if (isLimitedToken(decodeToken(token))) {
+        res.writeHead(403, {})
+        res.end()
+        return
+      }
 
       const ws = req.query.workspace as WorkspaceUuid
 
@@ -593,6 +605,10 @@ export function startHttpServer (
 
     try {
       const payload = decodeToken(token ?? '')
+      // A live connection could reach every session method, so limited API tokens use REST only.
+      if (isLimitedToken(payload)) {
+        throw new Error('Limited API tokens cannot open a WebSocket connection')
+      }
       const sessionId = url.searchParams.get('sessionId')
 
       wss.handleUpgrade(request, socket, head, (ws) => {

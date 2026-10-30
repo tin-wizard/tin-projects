@@ -14,9 +14,11 @@
 //
 
 import { Analytics } from '@hcengineering/analytics'
-import { MeasureContext, generateId, metricsAggregate } from '@hcengineering/core'
+import { AccountRole, MeasureContext, generateId, metricsAggregate, systemAccountUuid } from '@hcengineering/core'
 import type { StorageAdapter } from '@hcengineering/server-core'
-import { Token, TokenError, decodeToken } from '@hcengineering/server-token'
+import { decodeDocumentId } from '@hcengineering/collaborator-client'
+import { getTransactorEndpoint } from '@hcengineering/server-client'
+import { Token, TokenError, decodeToken, generateToken, isCollaboratorMethodAllowedForToken, isLimitedToken } from '@hcengineering/server-token'
 import { Hocuspocus } from '@hocuspocus/server'
 import bp from 'body-parser'
 import cors from 'cors'
@@ -106,6 +108,50 @@ export async function start (ctx: MeasureContext, config: Config, storageAdapter
 
   const rpcCtx = ctx.newChild('rpc', {}, { span: false })
 
+  // Content is stored by object id and attribute alone, so a claimed class must be checked against
+  // the object itself or a token could write to a document by naming it as, say, an issue.
+  const limitedTokenMayUseContent = async (
+    context: Context,
+    rawToken: string,
+    token: Token,
+    documentName: string,
+    request: RpcRequest
+  ): Promise<boolean> => {
+    const { objectClass, objectId, objectAttr } = decodeDocumentId(documentName).documentId
+    let client: Awaited<ReturnType<Context['clientFactory']>> | undefined
+    try {
+      // The context's client runs as the system account, so ask the transactor as the token itself:
+      // that applies the owner's space membership and role.
+      // Finding the endpoint selects a workspace, which limited tokens rightly can't do.
+      const serviceToken = generateToken(systemAccountUuid, token.workspace, { service: 'collaborator' })
+      const endpoint = (await getTransactorEndpoint(serviceToken, 'internal')).replace(/^ws/, 'http')
+      const workspace = encodeURIComponent(token.workspace)
+      const rest = async (path: string): Promise<any> => {
+        const res = await fetch(`${endpoint}/api/v1/${path}`, { headers: { Authorization: `Bearer ${rawToken}` } })
+        if (!res.ok) throw new Error(`Transactor returned ${res.status}`)
+        return await res.json()
+      }
+      const query = encodeURIComponent(JSON.stringify({ _id: objectId }))
+      const found = await rest(`find-all/${workspace}?class=${encodeURIComponent(objectClass)}&query=${query}&limit=1`)
+      const doc = (found.value ?? found)[0]
+      if (doc === undefined) return false
+      if (request.method !== 'getContent') {
+        const account = await rest(`account/${workspace}`)
+        if (account.role === AccountRole.ReadOnlyGuest || account.role === AccountRole.DocGuest) return false
+      }
+      client = await context.clientFactory()
+      if (client.getHierarchy().findAttribute(doc._class, objectAttr) === undefined) return false
+      if (!isCollaboratorMethodAllowedForToken(token, request.method, doc._class)) return false
+      // A source is a blob to load: only the one this object already points at may be used.
+      const source = (request.payload as { source?: unknown } | undefined)?.source
+      return source == null || source === doc[objectAttr]
+    } catch {
+      return false
+    } finally {
+      await client?.close()
+    }
+  }
+
   const getContext = async (rawToken: string, token: Token): Promise<Context> => {
     const wsIds = await getWorkspaceIds(rawToken)
 
@@ -183,7 +229,25 @@ export async function start (ctx: MeasureContext, config: Config, storageAdapter
       return
     }
 
-    const context = await getContext(rawToken, token)
+    let context: Context
+    try {
+      context = await getContext(rawToken, token)
+    } catch {
+      // Expired, revoked or removed from the workspace. Unanswered, this request would hang.
+      res.status(401).send({ error: 'Unauthorized' })
+      return
+    }
+
+    // The name decides which live document is opened, so it must be the token's own workspace.
+    if (decodeDocumentId(documentId).workspaceId !== context.wsIds.uuid) {
+      res.status(403).send({ error: 'Forbidden' })
+      return
+    }
+
+    if (isLimitedToken(token) && !(await limitedTokenMayUseContent(context, rawToken, token, documentId, request))) {
+      res.status(403).send({ error: 'Forbidden' })
+      return
+    }
 
     rpcCtx.info('rpc', { method: request.method, connectionId: context.connectionId, mode: token.extra?.mode ?? '' })
     await rpcCtx.with(

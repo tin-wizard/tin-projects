@@ -21,7 +21,13 @@ import { metricsAggregate, type Branding, type BrandingMap, type MeasureContext 
 import { getPlatformQueue } from '@hcengineering/kafka'
 import { type ConsumerHandle, type PlatformQueue } from '@hcengineering/server-core'
 import platform, { Severity, Status, addStringsLoader, setMetadata, unknownStatus } from '@hcengineering/platform'
-import serverToken, { decodeToken, decodeTokenVerbose, generateToken } from '@hcengineering/server-token'
+import serverToken, {
+  decodeToken,
+  decodeTokenVerbose,
+  generateToken,
+  isAccountMethodAllowedForToken,
+  isLimitedToken
+} from '@hcengineering/server-token'
 import cors from '@koa/cors'
 import type Cookies from 'cookies'
 import { type IncomingHttpHeaders } from 'http'
@@ -333,6 +339,11 @@ export function serveAccount (measureCtx: MeasureContext, brandings: BrandingMap
 
     // Ensure we don't set the token with workspace to the cookie
     const { account, extra } = decodeTokenVerbose(measureCtx, token)
+    if (isLimitedToken({ extra })) {
+      ctx.res.writeHead(403, KEEP_ALIVE_HEADERS)
+      ctx.res.end(JSON.stringify({ error: new Status(Severity.ERROR, platform.status.Forbidden, {}) }))
+      return
+    }
     const tokenWithoutWorkspace = generateToken(account, undefined, extra)
 
     const cookieOpts = getCookieOptions(ctx)
@@ -426,6 +437,15 @@ export function serveAccount (measureCtx: MeasureContext, brandings: BrandingMap
       const serviceName = decodedToken?.extra?.service
       source = serviceName ?? '🤦‍♂️user'
       isServiceRequest = serviceName !== undefined
+      if (decodedToken != null && !isAccountMethodAllowedForToken(decodedToken, request.method)) {
+        const body = JSON.stringify({
+          id: request.id,
+          error: new Status(Severity.ERROR, platform.status.Forbidden, {})
+        })
+        ctx.res.writeHead(403, KEEP_ALIVE_HEADERS)
+        ctx.res.end(body)
+        return
+      }
     } catch (err) {
       // Ignore
     }

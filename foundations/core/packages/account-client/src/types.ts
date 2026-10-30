@@ -122,6 +122,8 @@ export interface ApiTokenInfo {
   createdOn: number
   expiresOn: number
   revoked: boolean
+  /** Absent means full access. */
+  scopes?: string[]
 }
 
 export interface ApiTokenResult {

@@ -108,6 +108,18 @@ services:
   collaborator:
     image: ${TIN_REGISTRY:-ghcr.io/tin-wizard}/tin-projects-collaborator:${TIN_VERSION}
 
+  # Lets MCP clients such as Claude work in the platform with a TIN Projects API key.
+  mcp:
+    image: ${TIN_REGISTRY:-ghcr.io/tin-wizard}/tin-projects-mcp:${TIN_VERSION}
+    restart: unless-stopped
+    networks:
+      - huly_net
+    environment:
+      - PUBLIC_URL=http${SECURE:+s}://${HOST_ADDRESS}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4020/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      <<: *node-health
+
   account:
     image: ${TIN_REGISTRY:-ghcr.io/tin-wizard}/tin-projects-account:${TIN_VERSION}
     depends_on: *needs-db

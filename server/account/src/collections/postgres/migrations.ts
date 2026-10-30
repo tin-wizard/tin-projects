@@ -86,7 +86,8 @@ export function getMigrations (ns: string, flavor: DBFlavor): [string, string][]
     getV26Migration(ns, flavor),
     getV27Migration(ns, flavor),
     getV28Migration(ns, flavor),
-    getV29Migration(ns, flavor)
+    getV29Migration(ns, flavor),
+    getTinApiTokenScopesMigration(ns)
   ]
 }
 
@@ -884,4 +885,9 @@ function getV29Migration (ns: string, flavor: DBFlavor): [string, string] {
     ON ${ns}.api_tokens (expires_on);
     `
   ]
+}
+
+// TIN: named outside the upstream version sequence so upstream merges can't collide with it.
+function getTinApiTokenScopesMigration (ns: string): [string, string] {
+  return ['tin_account_db_v1_add_api_token_scopes', `ALTER TABLE ${ns}.api_tokens ADD COLUMN IF NOT EXISTS scopes TEXT;`]
 }
