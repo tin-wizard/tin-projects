@@ -180,6 +180,8 @@ export interface ApiToken {
   /** Milliseconds since epoch */
   expiresOn: number
   revoked: boolean
+  /** Comma-separated scopes. Absent means full access. */
+  scopes?: string | null
 }
 
 export interface Mailbox {

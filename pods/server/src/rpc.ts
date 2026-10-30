@@ -7,6 +7,7 @@ import contact, {
   type SocialIdentityRef
 } from '@hcengineering/contact'
 import core, {
+  DOMAIN_MODEL,
   buildSocialIdString,
   generateId,
   pickPrimarySocialId,
@@ -43,7 +44,16 @@ import {
   type Session,
   type SessionManager
 } from '@hcengineering/server-core'
-import { setApiTokenRevocationChecker, verifyToken, type Token } from '@hcengineering/server-token'
+import {
+  commentClasses,
+  decodeToken,
+  isLimitedToken,
+  isRestRouteAllowedForToken,
+  isTxAllowedForToken,
+  setApiTokenRevocationChecker,
+  verifyToken,
+  type Token
+} from '@hcengineering/server-token'
 
 import { createHash } from 'crypto'
 import { type Express, type Response as ExpressResponse, type Request } from 'express'
@@ -181,6 +191,53 @@ export function registerRPC (app: Express, sessions: SessionManager, ctx: Measur
     }
   })
 
+  // A request only claims which class it changes, and documents of different classes share a
+  // table, so limited tokens are judged on what is stored. Unknown targets return undefined.
+  async function withStoredClasses (ctx: ClientSessionCtx, session: Session, tx: any): Promise<unknown> {
+    if (tx === null || typeof tx !== 'object') return undefined
+    const find = async (objectClass: unknown, _id: unknown): Promise<any> => {
+      if (typeof objectClass !== 'string' || typeof _id !== 'string') return undefined
+      try {
+        return (await session.findAllRaw(ctx, objectClass as Ref<Class<Doc>>, { _id: _id as Ref<Doc> }, { limit: 1 }))[0]
+      } catch {
+        return undefined
+      }
+    }
+    // Replies point at a comment, so follow them up to what the conversation belongs to.
+    const rootClass = async (attachedToClass: unknown, attachedTo: unknown): Promise<string | undefined> => {
+      let doc = await find(attachedToClass, attachedTo)
+      for (let depth = 0; doc !== undefined && commentClasses.includes(doc._class) && depth < 5; depth++) {
+        doc = await find(doc.attachedToClass, doc.attachedTo)
+      }
+      return doc === undefined || commentClasses.includes(doc._class) ? undefined : doc._class
+    }
+    switch (tx._class) {
+      case core.class.TxApplyIf: {
+        if (!Array.isArray(tx.txes)) return undefined
+        const txes = await Promise.all(tx.txes.map(async (it: unknown) => await withStoredClasses(ctx, session, it)))
+        return txes.includes(undefined) ? undefined : { ...tx, txes }
+      }
+      case core.class.TxCreateDoc: {
+        if (!commentClasses.includes(tx.objectClass) || tx.attachedToClass === undefined) return tx
+        const root = await rootClass(tx.attachedToClass, tx.attachedTo)
+        return root === undefined ? undefined : { ...tx, attachedToClass: root }
+      }
+      case core.class.TxUpdateDoc:
+      case core.class.TxMixin:
+      case core.class.TxRemoveDoc: {
+        const doc = await find(tx.objectClass, tx.objectId)
+        if (doc === undefined) return undefined
+        const attachedToClass = commentClasses.includes(doc._class)
+          ? await rootClass(doc.attachedToClass, doc.attachedTo)
+          : doc.attachedToClass
+        if (commentClasses.includes(doc._class) && attachedToClass === undefined) return undefined
+        return { ...tx, objectClass: doc._class, objectSpace: doc.space, attachedToClass }
+      }
+      default:
+        return undefined
+    }
+  }
+
   async function withSession (
     req: Request,
     res: ExpressResponse,
@@ -219,6 +276,11 @@ export function registerRPC (app: Express, sessions: SessionManager, ctx: Measur
       }
       if (workspaceId !== decodedToken.workspace) {
         sendError(res, 403, { message: 'Invalid workspace', workspace: decodedToken.workspace })
+        return
+      }
+
+      if (!isRestRouteAllowedForToken(decodedToken, method)) {
+        sendError(res, 403, { message: 'This API token does not have permission for this operation' })
         return
       }
 
@@ -344,6 +406,24 @@ export function registerRPC (app: Express, sessions: SessionManager, ctx: Measur
   app.post('/api/v1/tx/:workspaceId', (req, res) => {
     void withSession(req, res, 'tx', async (ctx, session, rateLimit, token) => {
       const tx: any = (await retrieveJson(req)) ?? {}
+
+      const decoded = decodeToken(token)
+      if (isLimitedToken(decoded)) {
+        const hierarchy = ctx.pipeline.context.hierarchy
+        const isAdminClass = (objectClass: string): boolean => {
+          try {
+            const _class = objectClass as Ref<Class<Doc>>
+            return hierarchy.isDerived(_class, core.class.Space) || hierarchy.findDomain(_class) === DOMAIN_MODEL
+          } catch {
+            return true
+          }
+        }
+        const stored = await withStoredClasses(ctx, session, tx)
+        if (stored === undefined || !isTxAllowedForToken(decoded, stored, isAdminClass)) {
+          sendError(res, 403, { message: 'This API token does not have permission for this change' })
+          return
+        }
+      }
 
       try {
         if (tx._class === core.class.TxDomainEvent) {

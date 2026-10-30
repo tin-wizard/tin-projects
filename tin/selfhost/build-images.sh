@@ -21,6 +21,7 @@ declare -a IMAGES=(
   "fulltext:@hcengineering/pod-fulltext"
   "stats:@hcengineering/pod-stats"
   "mail:@hcengineering/pod-mail"
+  "mcp:@hcengineering/pod-mcp"
   "rekoni-service:@hcengineering/rekoni-service"
 )
 

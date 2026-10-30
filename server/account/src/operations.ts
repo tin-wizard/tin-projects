@@ -41,6 +41,7 @@ import {
   decodeToken,
   decodeTokenVerbose,
   generateToken,
+  isApiTokenScope,
   type PermissionsGrant,
   type Token
 } from '@hcengineering/server-token'
@@ -2757,6 +2758,7 @@ async function createApiToken (
     name: string
     workspaceUuid: WorkspaceUuid
     expiryDays: number
+    scopes?: string[]
   }
 ): Promise<{ id: string, token: string, expiresOn: number }> {
   const { name, workspaceUuid, expiryDays } = params
@@ -2799,11 +2801,17 @@ async function createApiToken (
     throw new PlatformError(new Status(Severity.ERROR, platform.status.BadRequest, {}))
   }
 
+  // No scopes means full access. Every limited token needs read: it can't look anything up otherwise.
+  const { scopes } = params
+  if (scopes !== undefined && (!Array.isArray(scopes) || !scopes.includes('read') || !scopes.every(isApiTokenScope))) {
+    throw new PlatformError(new Status(Severity.ERROR, platform.status.BadRequest, {}))
+  }
+
   const expiresOn = now + days * 86400000
   const expSec = Math.floor(expiresOn / 1000)
 
   const id = randomUUID()
-  const apiToken = generateToken(account, workspaceUuid, { apiTokenId: id }, undefined, { exp: expSec })
+  const apiToken = generateToken(account, workspaceUuid, { apiTokenId: id, ...(scopes !== undefined ? { scopes: scopes.join(',') } : {}) }, undefined, { exp: expSec })
 
   await db.apiToken.insertOne({
     id,
@@ -2812,7 +2820,8 @@ async function createApiToken (
     workspaceUuid,
     createdOn: now,
     expiresOn,
-    revoked: false
+    revoked: false,
+    ...(scopes !== undefined ? { scopes: scopes.join(',') } : {})
   })
 
   ctx.info('API token created', { id, account, workspaceUuid, days })
@@ -2854,7 +2863,8 @@ async function listApiTokens (
     workspaceName: wsMap.get(t.workspaceUuid) ?? t.workspaceUuid,
     createdOn: t.createdOn,
     expiresOn: t.expiresOn,
-    revoked: t.revoked
+    revoked: t.revoked,
+    ...(t.scopes != null ? { scopes: t.scopes.split(',') } : {})
   }))
 }
 

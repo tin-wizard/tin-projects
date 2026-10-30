@@ -15,7 +15,7 @@
 
 import { decodeDocumentId } from '@hcengineering/collaborator-client'
 import { MeasureContext } from '@hcengineering/core'
-import { decodeToken } from '@hcengineering/server-token'
+import { decodeToken, isLimitedToken } from '@hcengineering/server-token'
 import { Extension, onAuthenticatePayload } from '@hocuspocus/server'
 import { isReadOnlyOrGuest } from '@hcengineering/account'
 
@@ -42,6 +42,10 @@ export class AuthenticationExtension implements Extension {
       {},
       async () => {
         const token = decodeToken(data.token)
+        // The live editing connection has no per-document check, so limited API tokens use RPC only.
+        if (isLimitedToken(token)) {
+          throw new Error('Limited API tokens cannot open a live document connection')
+        }
         const readonly = isReadOnlyOrGuest(token.account, token.extra)
 
         ctx.info('authenticate', {

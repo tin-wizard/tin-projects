@@ -15,9 +15,9 @@
 //
 
 import { Analytics } from '@hcengineering/analytics'
-import { MeasureContext, Blob as PlatformBlob, WorkspaceIds, metricsAggregate, type Ref } from '@hcengineering/core'
+import { generateId, MeasureContext, Blob as PlatformBlob, WorkspaceIds, metricsAggregate, type Ref } from '@hcengineering/core'
 import platform, { PlatformError } from '@hcengineering/platform'
-import { TokenError, decodeToken } from '@hcengineering/server-token'
+import { type ApiTokenScope, TokenError, decodeToken, isLimitedToken, tokenHasScope } from '@hcengineering/server-token'
 import { StorageAdapter } from '@hcengineering/storage'
 import bp from 'body-parser'
 import cors from 'cors'
@@ -429,6 +429,15 @@ export function start (
     })
   )
 
+  // Invalid tokens are left to the workspace check below, which already rejects them.
+  const tokenAllows = (token: string, scope: ApiTokenScope): boolean => {
+    try {
+      return tokenHasScope(decodeToken(token), scope)
+    } catch {
+      return true
+    }
+  }
+
   const getWorkspaceIds = async (ctx: MeasureContext, token: string, path?: string): Promise<WorkspaceIds | null> => {
     const accountClient = getAccountClient(config.accountsUrlInternal ?? config.accountsUrl, token)
     const workspaceInfo = await accountClient.getWorkspaceInfo()
@@ -472,6 +481,10 @@ export function start (
             (req.query.token as string | undefined) ??
             authorizationToken ??
             ''
+          if (!tokenAllows(token, 'read')) {
+            res.status(403).send()
+            return
+          }
           const wsIds = await getWorkspaceIds(ctx, token, req.path)
           if (wsIds === null) {
             res.status(403).send()
@@ -604,10 +617,18 @@ export function start (
 
         try {
           const token = authHeader.split(' ')[1]
+          if (!tokenAllows(token, 'files:write')) {
+            res.status(403).send()
+            return
+          }
           const workspaceDataId = await getWorkspaceIds(ctx, token, req.path)
           if (workspaceDataId === null) {
             res.status(403).send()
             return
+          }
+          // The name becomes the storage key, so a limited token must not choose it and overwrite something.
+          if (isLimitedToken(decodeToken(token))) {
+            file.name = generateId()
           }
           const { uuid, etag } = await storageUpload(ctx, config.storageAdapter, workspaceDataId, file)
 
@@ -646,6 +667,10 @@ export function start (
       }
 
       const token = authHeader.split(' ')[1]
+      if (!tokenAllows(token, 'delete') || !tokenAllows(token, 'files:write')) {
+        res.status(403).send()
+        return
+      }
       const workspaceDataId = await getWorkspaceIds(ctx, token, req.path)
       if (workspaceDataId === null) {
         res.status(403).send()
@@ -654,6 +679,12 @@ export function start (
       const uuid = req.query.file as string
       if (uuid === '') {
         res.status(500).send()
+        return
+      }
+
+      // Uploads have plain hex ids. Other names are the stored bodies and snapshots of documents and issues.
+      if (isLimitedToken(decodeToken(token)) && (typeof uuid !== 'string' || !/^[0-9a-f-]+$/.test(uuid))) {
+        res.status(403).send()
         return
       }
 
